@@ -1,0 +1,73 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django migration files
+*/migrations/*.py
+*/migrations/*.pyc
+*/migrations/__pycache__/
+
+# Django secrets
+*.sqlite3
+*.log
+.env
+.env.*
+
+# Django static and media (optional if generated locally)
+staticfiles/
+siu_venv/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# MyPy, Pyre, Pylint, Pyright, Bandit
+.mypy_cache/
+.pyre/
+.pylint.d/
+.pyright/
+.bandit/
+
+# Virtual environments
+media/uploads
+media/original
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+
+# Pipenv / Poetry / Pyenv
+Pipfile.lock
+poetry.lock
+.python-version
+
+# Docker
+*.pid
+docker-compose.override.yml
