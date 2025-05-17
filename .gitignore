@@ -12,6 +12,9 @@ __pycache__/
 *.sqlite3
 *.log
 .env
+.myenv
+*myenv
+/myenv
 .env.*
 
 # Django static and media (optional if generated locally)
