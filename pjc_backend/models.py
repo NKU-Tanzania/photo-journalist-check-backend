@@ -1,4 +1,12 @@
+from django.contrib.auth.models import AbstractUser, Group, Permission
+from .managers import CustomUserManager
 from django.db import models
+from django.contrib.auth import get_user_model
+from cryptography.hazmat.primitives import hashes, serialization
+import base64
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Custom user model
 class CustomUser(AbstractUser):
