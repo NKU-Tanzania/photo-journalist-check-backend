@@ -53,3 +53,19 @@ class CustomUser(AbstractUser):
             return None
 
 User = get_user_model()
+
+class UploadedImage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    original_image = models.ImageField(upload_to='original/', blank=True, null=True)
+    # This contains the encrypted data from the client
+    encrypted_image = models.BinaryField()
+    hash_value = models.CharField(max_length=255)  # Increased length to accommodate Base64
+    calculated_hash_value = models.CharField(max_length=255)  # Increased length to accommodate Base64
+    metadata = models.JSONField(default=dict)
+    verified = models.BooleanField(default=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    aes_key = models.BinaryField()
+
+    def compute_hash(self, image_data):
+        """Compute SHA-256 hash of image data"""
+        return hashlib.sha256(image_data).hexdigest()
