@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from cryptography.hazmat.primitives import hashes, serialization
 import base64
 import logging
+import hashlib
+import datetime
 
 # Set up logging
 logger = logging.getLogger(__name__)
