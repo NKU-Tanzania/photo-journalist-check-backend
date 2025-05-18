@@ -7,6 +7,7 @@ import base64
 import logging
 import hashlib
 import datetime
+import requests
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -189,7 +190,7 @@ class UploadedImage(models.Model):
 
         return metadata
 
-@classmethod
+    @classmethod
     def upload_image(cls, user, image_file, aes_key, provided_hash=None, metadata=None):
         """
         Process image upload:
@@ -266,3 +267,24 @@ class UploadedImage(models.Model):
         except Exception as e:
             logger.error(f"Error in upload_image: {str(e)}")
             raise
+
+    def reverse_geocode(latitude, longitude):
+        """Convert coordinates to human-readable address"""
+        try:
+            # Using Nominatim (OpenStreetMap) - free but has usage limits
+            url = f"https://nominatim.openstreetmap.org/reverse?lat={latitude}&lon={longitude}&format=json"
+            headers = {'User-Agent': 'YourApp/1.0'}  # Required by Nominatim
+
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    'address': data.get('display_name', 'Unknown location'),
+                    'city': data.get('address', {}).get('city', ''),
+                    'state': data.get('address', {}).get('state', ''),
+                    'country': data.get('address', {}).get('country', '')
+                }
+        except Exception as e:
+            print(f"Geocoding error: {e}")
+
+        return {'address': 'Location unavailable'}
