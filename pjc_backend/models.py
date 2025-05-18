@@ -188,3 +188,81 @@ class UploadedImage(models.Model):
                 metadata["image_analysis_error"] = str(e)
 
         return metadata
+
+@classmethod
+    def upload_image(cls, user, image_file, aes_key, provided_hash=None, metadata=None):
+        """
+        Process image upload:
+        1. Store the encrypted image data from client
+        2. Store the provided hash value
+        3. Store the provided metadata from client
+        4. Create minimal metadata if none provided
+        """
+        # Create the model instance
+        upload = cls(user=user)
+
+        try:
+            # Store the encrypted image data as is
+            image_file.seek(0)  # Reset file pointer
+            upload.encrypted_image = image_file.read()
+
+            # Add a field to store the encrypted key
+            upload.aes_key = aes_key
+
+            # Store the provided hash as is (it may be Base64 encoded)
+            if provided_hash:
+                upload.hash_value = provided_hash
+            else:
+                # This is a fallback and might not be useful for verification
+                upload.hash_value = upload.compute_hash(upload.encrypted_image)
+
+            # Create basic metadata
+            base_metadata = {
+                "user_id": user.id,
+                "upload_timestamp": datetime.datetime.now().isoformat(),
+                "original_filename": getattr(image_file, 'name', 'unknown'),
+                "encrypted_size": len(upload.encrypted_image),
+                "status": "encrypted"
+            }
+
+            # Merge with client-provided metadata if it exists
+            if metadata and isinstance(metadata, dict):
+                # Create a new dictionary with base metadata and update with client metadata
+                combined_metadata = base_metadata.copy()
+                combined_metadata.update(metadata)
+
+                # Add processing indicators
+                combined_metadata["client_metadata_received"] = True
+
+                # Process specific metadata fields for validation/enhancement
+                if "location" in metadata and isinstance(metadata["location"], dict):
+                    loc = metadata["location"]
+                    if "latitude" in loc and "longitude" in loc:
+                        # Add reverse geocoding data
+                        try:
+                            geocode_result = reverse_geocode(loc["latitude"], loc["longitude"])
+                            combined_metadata["location"]["address"] = geocode_result
+                        except Exception as e:
+                            combined_metadata["location"]["geocode_error"] = str(e)
+
+                # Process device information
+                if "device_manufacturer" in metadata and "device_model" in metadata:
+                    combined_metadata["device_identified"] = True
+
+                # Process OS information
+                if "os_name" in metadata and "os_version" in metadata:
+                    combined_metadata["os_identified"] = True
+
+                upload.metadata = combined_metadata
+            else:
+                # Use just the base metadata if none provided
+                upload.metadata = base_metadata
+
+            # Save the upload - the original_image field will be populated during verification
+            upload.save()
+
+            return upload, upload.hash_value
+
+        except Exception as e:
+            logger.error(f"Error in upload_image: {str(e)}")
+            raise
