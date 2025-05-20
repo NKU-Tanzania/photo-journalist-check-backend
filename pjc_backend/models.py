@@ -1,13 +1,18 @@
+import io
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from .managers import CustomUserManager
 from django.db import models
 from django.contrib.auth import get_user_model
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import serialization
 import base64
 import logging
 import hashlib
 import datetime
 import requests
+from PIL import Image
+from cryptography.hazmat.primitives.asymmetric import padding
+from django.core.files.base import ContentFile
+import json
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -267,24 +272,283 @@ class UploadedImage(models.Model):
         except Exception as e:
             logger.error(f"Error in upload_image: {str(e)}")
             raise
+    
+    def get_server_private_key(self):
+        """Get the server's private key for this image's user"""
+        if not self.user.server_private_key:
+            return None
 
-    def reverse_geocode(latitude, longitude):
-        """Convert coordinates to human-readable address"""
         try:
-            # Using Nominatim (OpenStreetMap) - free but has usage limits
-            url = f"https://nominatim.openstreetmap.org/reverse?lat={latitude}&lon={longitude}&format=json"
-            headers = {'User-Agent': 'YourApp/1.0'}  # Required by Nominatim
-
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                data = response.json()
-                return {
-                    'address': data.get('display_name', 'Unknown location'),
-                    'city': data.get('address', {}).get('city', ''),
-                    'state': data.get('address', {}).get('state', ''),
-                    'country': data.get('address', {}).get('country', '')
-                }
+            from cryptography.hazmat.backends import default_backend
+            pem_data = self.user.server_private_key.encode('utf-8')
+            return serialization.load_pem_private_key(
+                pem_data,
+                password=None,
+                backend=default_backend()
+            )
         except Exception as e:
-            print(f"Geocoding error: {e}")
+            logger.error(f"Error loading server private key: {str(e)}")
+            return None
 
-        return {'address': 'Location unavailable'}
+    def verify_image(self):
+        # Get server's private key
+        private_key = self.get_server_private_key()
+        if not private_key:
+            logger.error(f"Server private key not found for user {self.user.username}")
+            return False, "Server private key not found"
+
+        try:
+            logger.info(f"Attempting to verify image for user {self.user.username}")
+
+            try:
+                # Ensure aes_key is accessed as bytes (fix for BinaryField issue)
+                aes_key_bytes = bytes(self.aes_key)
+
+                # Decrypt the AES key using the server's private key
+                decrypted_aes_key = private_key.decrypt(
+                    aes_key_bytes,
+                    padding.PKCS1v15()
+                )
+
+                # Convert encrypted_image to bytes if needed
+                encrypted_image_bytes = bytes(self.encrypted_image)
+
+                # For GCM, IV is typically 12 bytes (96 bits)
+                # Extract the IV from the end of the data
+                iv_length = 12  # Standard for GCM
+
+                if len(encrypted_image_bytes) <= iv_length:
+                    logger.error("Encrypted data too short to contain IV")
+                    return False, "Encrypted data too short"
+
+                encrypted_data = encrypted_image_bytes[:-iv_length]
+                iv = encrypted_image_bytes[-iv_length:]
+
+                logger.debug(f"Encrypted data length: {len(encrypted_data)}, IV length: {len(iv)}")
+
+                # Use AESGCM for simpler handling
+                from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+                try:
+                    # Create AESGCM object with the decrypted key
+                    aesgcm = AESGCM(decrypted_aes_key)
+
+                    # Decrypt the data - for GCM the tag is part of the ciphertext
+                    # in the cryptography library's AESGCM implementation
+                    decrypted_data = aesgcm.decrypt(iv, encrypted_data, None)
+
+                    logger.debug(f"Successfully decrypted data, size: {len(decrypted_data)} bytes")
+
+                    # Calculate hash and verify
+                    computed_hash = hashlib.sha256(decrypted_data).hexdigest()
+                    logger.debug(f"Computed hash: {computed_hash[:20]}...")
+                    logger.debug(f"Stored hash: {self.hash_value[:20]}...")
+
+                    hash_verified = False
+                    if computed_hash == self.hash_value:
+                        logger.info("Hash verification successful!")
+                        hash_verified = True
+                    else:
+                        # Try base64 format
+                        base64_hash = base64.b64encode(hashlib.sha256(decrypted_data).digest()).decode('utf-8')
+                        if base64_hash == self.hash_value:
+                            logger.info(
+                                f"Sent Hash: {self.hash_value[:20]}... = Calculated Hash: {base64_hash[:20]}...")
+                            logger.info("Hash verification successful!!")
+                            hash_verified = True
+
+                    if hash_verified:
+                        self.calculated_hash_value = computed_hash if computed_hash == self.hash_value else base64_hash
+                        # Save the decrypted image
+                        try:
+                            # Create a BytesIO object from the decrypted data
+                            image_data = io.BytesIO(decrypted_data)
+
+                            # Try to open as an image to extract metadata
+                            try:
+                                img = Image.open(image_data)
+                                # Extract image metadata but preserve client metadata
+                                img_metadata = self.extract_metadata(img)
+
+                                # Keep original client metadata
+                                client_metadata = self.metadata.copy()
+
+                                # Update with image metadata but don't overwrite client metadata
+                                # for key, value in img_metadata.items():
+                                #     if key not in client_metadata:
+                                #         client_metadata[key] = value
+
+                                # Instead of above, separate image-specific data
+                                client_metadata["extracted_image_data"] = img_metadata
+
+                                # Reset the pointer to the beginning of the file
+                                image_data.seek(0)
+
+                                # Update the metadata
+                                self.metadata = client_metadata
+
+                            except Exception as e:
+                                logger.warning(f"Failed to extract metadata from image: {str(e)}")
+                                # Keep existing metadata but add the error
+                                self.metadata["extraction_error"] = str(e)
+
+                            # Save the decrypted image to the original_image field
+                            timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                            filename = f"decrypted_{self.user.username}_{timestamp}.jpg"
+                            self.original_image.save(
+                                filename,
+                                ContentFile(decrypted_data),
+                                save=False
+                            )
+
+                            # Add additional verification metadata
+                            self.metadata.update({
+                                "verification_status": "success",
+                                "verification_time": datetime.datetime.now().isoformat(),
+                                "verification_filename": filename,
+                                "file_size_bytes": len(decrypted_data),
+                                "file_size_readable": f"{len(decrypted_data) / 1024:.2f} KB",
+                            })
+
+                            # Mark as verified
+                            self.verified = True
+                            self.save()
+                            return True, "Verification completed successfully"
+                        except Exception as save_error:
+                            logger.error(f"Failed to save decrypted image: {str(save_error)}")
+                            return False, f"Failed to save decrypted image: {str(save_error)}"
+                    else:
+                        logger.error(f"Hash mismatch")
+                        return False, "Hash verification failed: hashes don't match"
+
+                except Exception as e:
+                    logger.error(f"AESGCM decryption failed: {str(e)}")
+
+                    # If that doesn't work, the IV and encrypted data might be structured differently
+                    # Let's try one more approach based on how the Android client might be sending data
+
+                    # In some Android implementations, the GCM tag (16 bytes) is appended after the encrypted data
+                    # and before the IV (12 bytes)
+
+                    if len(encrypted_image_bytes) < 28:  # Need at least 16 (tag) + 12 (IV)
+                        return False, "Encrypted data too short for alternative method"
+
+                    # Try extracting IV from end, and tag from before IV
+                    iv = encrypted_image_bytes[-12:]
+                    tag = encrypted_image_bytes[-28:-12]  # 16 bytes before IV
+                    actual_encrypted_data = encrypted_image_bytes[:-28]
+
+                    logger.debug(
+                        f"Alt method - Data: {len(actual_encrypted_data)} bytes, Tag: {len(tag)} bytes, IV: {len(iv)} bytes")
+
+                    # Try with Cipher/modes.GCM
+                    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+                    try:
+                        # Create cipher with explicit tag handling
+                        gcm = modes.GCM(iv, tag)
+                        cipher = Cipher(algorithms.AES(decrypted_aes_key), gcm)
+                        decryptor = cipher.decryptor()
+
+                        decrypted_data = decryptor.update(actual_encrypted_data) + decryptor.finalize()
+
+                        # Verify hash
+                        computed_hash = hashlib.sha256(decrypted_data).hexdigest()
+
+                        hash_verified = False
+                        if computed_hash == self.hash_value:
+                            hash_verified = True
+                        else:
+                            # Try base64 format
+                            base64_hash = base64.b64encode(hashlib.sha256(decrypted_data).digest()).decode('utf-8')
+                            if base64_hash == self.hash_value:
+                                hash_verified = True
+
+                        if hash_verified:
+                            self.calculated_hash_value = computed_hash if computed_hash == self.hash_value else base64_hash
+                            # Save the decrypted image
+                            try:
+                                # Create a BytesIO object from the decrypted data
+                                image_data = io.BytesIO(decrypted_data)
+
+                                # Try to open as an image to extract metadata
+                                try:
+                                    img = Image.open(image_data)
+                                    # Extract image metadata but preserve client metadata
+                                    img_metadata = self.extract_metadata(img)
+
+                                    # Keep original client metadata
+                                    client_metadata = self.metadata.copy()
+
+                                    # Separate image-specific data
+                                    client_metadata["extracted_image_data"] = img_metadata
+
+                                    # Reset the pointer to the beginning of the file
+                                    image_data.seek(0)
+
+                                    # Update the metadata
+                                    self.metadata = client_metadata
+                                except Exception as e:
+                                    logger.warning(f"Failed to extract metadata from image: {str(e)}")
+                                    # Keep existing metadata but add the error
+                                    self.metadata["extraction_error"] = str(e)
+
+                                # Save the decrypted image to the original_image field
+                                timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                                filename = f"decrypted_{self.user.username}_{timestamp}.jpg"
+                                self.original_image.save(
+                                    filename,
+                                    ContentFile(decrypted_data),
+                                    save=False
+                                )
+
+                                # Add additional verification metadata
+                                self.metadata.update({
+                                    "verification_status": "success (alt method)",
+                                    "verification_time": datetime.datetime.now().isoformat(),
+                                    "verification_filename": filename,
+                                    "file_size_bytes": len(decrypted_data),
+                                    "file_size_readable": f"{len(decrypted_data) / 1024:.2f} KB",
+                                })
+
+                                self.verified = True
+                                self.save()
+                                return True, "Verification completed successfully (alt method)"
+                            except Exception as save_error:
+                                logger.error(f"Failed to save decrypted image: {str(save_error)}")
+                                return False, f"Failed to save decrypted image: {str(save_error)}"
+                        else:
+                            return False, "Hash verification failed: hashes don't match (alt method)"
+
+                    except Exception as alt_e:
+                        logger.error(f"Alternative decryption method failed: {str(alt_e)}")
+                        return False, f"All decryption methods failed"
+
+            except Exception as e:
+                logger.error(f"Decryption failed: {str(e)}")
+                return False, f"Decryption failed: {str(e)}"
+
+        except Exception as e:
+            logger.error(f"Verification error: {str(e)}")
+            return False, f"Verification error: {str(e)}"
+
+def reverse_geocode(latitude, longitude):
+    """Convert coordinates to human-readable address"""
+    try:
+        # Using Nominatim (OpenStreetMap) - free but has usage limits
+        url = f"https://nominatim.openstreetmap.org/reverse?lat={latitude}&lon={longitude}&format=json"
+        headers = {'User-Agent': 'YourApp/1.0'}  # Required by Nominatim
+
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                'address': data.get('display_name', 'Unknown location'),
+                'city': data.get('address', {}).get('city', ''),
+                'state': data.get('address', {}).get('state', ''),
+                'country': data.get('address', {}).get('country', '')
+            }
+    except Exception as e:
+        print(f"Geocoding error: {e}")
+
+    return {'address': 'Location unavailable'}
