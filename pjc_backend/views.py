@@ -11,6 +11,8 @@ import base64
 import json
 from django.utils import timezone
 from rest_framework import status
+import os
+from django.http import FileResponse, Http404, HttpResponse
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -176,3 +178,97 @@ class ImageUploadView(APIView):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+# Image verification API
+class ImageVerificationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, image_id):
+        try:
+            image = UploadedImage.objects.get(id=image_id)
+
+            # Check if user has permission to verify this image
+            if image.user != request.user and not request.user.is_staff:
+                return Response({"error": "Not authorized to verify this image"},
+                                status=status.HTTP_403_FORBIDDEN)
+
+            # Verify the image if not yet verified
+            if not image.verified:
+                verified, message = image.verify_image()
+            else:
+                verified, message = True, "Image already verified"
+
+            # Get download URL if verified
+            download_url = None
+            if verified and image.original_image:
+                download_url = request.build_absolute_uri(image.original_image.url)
+
+            return Response({
+                "image_id": image.id,
+                "verification_status": verified,
+                "message": message,
+                "metadata":image.metadata,
+                "download_url": download_url
+            })
+
+        except UploadedImage.DoesNotExist:
+            return Response({"error": "Image not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            logger.error(f"Error in image verification: {str(e)}")
+            logger.error(error_trace)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Image download API
+class ImageDownloadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, image_id):
+        try:
+            image = UploadedImage.objects.get(id=image_id)
+
+            # Check if user has permission to download this image
+            if image.user != request.user and not request.user.is_staff:
+                return Response({"error": "Not authorized to download this image"},
+                                status=status.HTTP_403_FORBIDDEN)
+
+            # Check if the image is verified
+            if not image.verified:
+                return Response({"error": "Image has not been verified. Please verify before downloading."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if the original image exists
+            if not image.original_image:
+                # If the original image doesn't exist, try to verify it again
+                verified, message = image.verify_image()
+                if not verified or not image.original_image:
+                    return Response({"error": "Failed to prepare image for download."},
+                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Get the file path
+            file_path = image.original_image.path
+
+            # Check if file exists
+            if not os.path.exists(file_path):
+                raise Http404("File not found")
+
+            # Open the file for reading
+            file = open(file_path, 'rb')
+
+            # Get the filename
+            filename = os.path.basename(file_path)
+
+            # Return the file as a response
+            response = FileResponse(file, content_type='image/jpeg')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+
+        except UploadedImage.DoesNotExist:
+            return Response({"error": "Image not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            logger.error(f"Error in image download: {str(e)}")
+            logger.error(error_trace)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
