@@ -1,0 +1,204 @@
+{% extends "admin/base_site.html" %}
+
+{% load static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/custom_gallery.css' %}">
+{% endblock %}
+
+{% block content %}
+
+
+<div class="gallery-container">
+  <div class="gallery-header">
+<!--    <h1>Image Verification Gallery</h1>-->
+<!--    <h1>Image Verification Gallery</h1>-->
+    <div class="gallery-filters">
+      <div class="filter-search-container" style="display: flex; align-items: center; margin-bottom: 20px; padding: 10px; background-color: #f8f8f8; border-radius: 5px;">
+  <div class="filter-section" style="margin-right: 20px;">
+    <label for="verification-filter" style="margin-right: 10px; font-weight: bold;">Filter by:</label>
+    <select id="verification-filter" style="width: 150px; height: 31px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; cursor: pointer;">
+      <option value="all">All Images</option>
+      <option value="verified">Verified Only</option>
+      <option value="unverified">Unverified Only</option>
+    </select>
+  </div>
+  <div class="search-section" style="display: flex; align-items: center;">
+    <input type="text" id="image-search" placeholder="Search by user..." style="width: 200px; height: 31px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; margin-right: 5px;">
+    <button id="search-button" style="height: 31px; padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px;  cursor: pointer;">Search</button>
+  </div>
+</div>
+    </div>
+  </div>
+
+  <div class="gallery-grid">
+    {% for image in image_list %}
+    <div class="gallery-item {% if image.verified %}verified{% else %}unverified{% endif %}" data-user="{{ image.user.username }}">
+      <div class="image-container">
+        {% if image.original_image %}
+          <img src="{{ image.original_image.url }}" alt="Uploaded by {{ image.user.username }}">
+        {% else %}
+          <div class="no-image-placeholder">No image available</div>
+        {% endif %}
+        <div class="verification-badge {% if image.verified %}verified{% else %}unverified{% endif %}">
+          {% if image.verified %}
+          <span>✓ Verified</span>
+          {% else %}
+          <span>✗ Not Verified</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="image-info">
+        <h3>{{ image.user.username }}</h3>
+        <p>Uploaded: {{ image.uploaded_at|date:"M d, Y, g:i a" }}</p>
+
+        <div class="hash-values-container">
+          <div class="hash-toggle-btn">
+            <button class="toggle-hash-btn" onclick="toggleHashDetails(this)">Show Hash Values</button>
+          </div>
+          <div class="hash-details">
+            <div class="hash-item client">
+              <div class="hash-label">Client Hash:</div>
+              <div class="hash-value">{{ image.hash_value }}</div>
+              <div class="copy-btn" data-clipboard-text="{{ image.hash_value }}">
+                <i class="fas fa-copy"></i>
+              </div>
+            </div>
+            <div class="hash-item server">
+              <div class="hash-label">Server Hash:</div>
+              <div class="hash-value">{{ image.calculated_hash_value }}</div>
+              <div class="copy-btn" data-clipboard-text="{{ image.calculated_hash_value }}">
+                <i class="fas fa-copy"></i>
+              </div>
+            </div>
+            <div class="hash-match-indicator">
+              {% if image.hash_value == image.calculated_hash_value %}
+                <div class="match-status match">
+                  <i class="fas fa-check-circle"></i> Hashes Match
+                </div>
+              {% else %}
+                <div class="match-status mismatch">
+                  <i class="fas fa-exclamation-triangle"></i> Hash Mismatch
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="image-actions">
+          {% if image.verified %}
+            <a href="{% url 'admin-image-download' image.id %}" class="action-button download">Download</a>
+          {% else %}
+            <button class="action-button verify" data-id="{{ image.id }}">Verify Now</button>
+          {% endif %}
+          <a href="{% url 'admin-image-metadata' image.id %}" class="action-button info">View Info</a>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="no-images">
+      <p>No images available.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+    {% endif %}
+
+    <span class="current-page">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+    {% endif %}
+  </div>
+</div>
+
+<div id="image-modal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <div class="modal-image-container">
+      <img id="modal-image" src="" alt="Full size image">
+    </div>
+    <div id="modal-details">
+      <h2 id="modal-title"></h2>
+      <div id="modal-hash-info">
+        <div class="modal-hash-row">
+          <span class="hash-label">Client Hash:</span>
+          <span id="modal-client-hash" class="hash-value"></span>
+          <button class="copy-hash-btn" data-target="modal-client-hash">Copy</button>
+        </div>
+        <div class="modal-hash-row">
+          <span class="hash-label">Server Hash:</span>
+          <span id="modal-server-hash" class="hash-value"></span>
+          <button class="copy-hash-btn" data-target="modal-server-hash">Copy</button>
+        </div>
+        <div id="modal-hash-match" class="hash-match-indicator"></div>
+      </div>
+      <div id="modal-metadata"></div>
+      <div id="modal-actions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add this JavaScript function within your content block -->
+<script>
+  function toggleHashDetails(btn) {
+    const hashDetails = btn.closest('.hash-toggle-btn').parentElement.querySelector('.hash-details');
+    console.log('Hash details element:', hashDetails);
+
+    if (hashDetails.classList.contains('active')) {
+      hashDetails.classList.remove('active');
+      btn.textContent = 'Show Hash Values';
+    } else {
+      hashDetails.classList.add('active');
+      btn.textContent = 'Hide Hash Values';
+    }
+  }
+</script>
+{% endblock %}
+
+{% block extrajs %}
+  {{ block.super }}
+  <script src="{% static 'js/custom_gallery.js' %}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize clipboard functionality
+      new ClipboardJS('.copy-btn');
+
+      // Initialize modal hash info
+      const modal = document.getElementById('image-modal');
+      document.querySelectorAll('.gallery-item').forEach(item => {
+        item.addEventListener('click', function() {
+          const clientHash = this.querySelector('.hash-item.client .hash-value').textContent;
+          const serverHash = this.querySelector('.hash-item.server .hash-value').textContent;
+
+          document.getElementById('modal-client-hash').textContent = clientHash;
+          document.getElementById('modal-server-hash').textContent = serverHash;
+
+          const hashMatch = clientHash === serverHash;
+          const matchElement = document.getElementById('modal-hash-match');
+          if (hashMatch) {
+            matchElement.innerHTML = '<i class="fas fa-check-circle"></i> Hashes Match';
+            matchElement.className = 'hash-match-indicator match';
+          } else {
+            matchElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Hash Mismatch';
+            matchElement.className = 'hash-match-indicator mismatch';
+          }
+
+          // Initialize modal copy buttons
+          new ClipboardJS('.copy-hash-btn', {
+            text: function(trigger) {
+              return document.getElementById(trigger.getAttribute('data-target')).textContent;
+            }
+          });
+        });
+      });
+    });
+  </script>
+{% endblock %}

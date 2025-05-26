@@ -1,0 +1,249 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Dashboard</h1>
+    </div>
+
+    <div class="dashboard-cards">
+        <div class="card blue-card">
+            <div class="card-content">
+                <h3>Registered Users</h3>
+                <div class="value">{{ user_count | default:"0" }}</div>
+                <div class="trend">Since {{ first_user_date|date:"M Y" }}</div>
+            </div>
+        </div>
+
+        <div class="card green-card">
+            <div class="card-content">
+                <h3>Uploaded Images</h3>
+                <div class="value">{{ image_count | default:"0" }}</div>
+                <div class="trend">Since {{ first_image_date|date:"M Y" }}</div>
+            </div>
+        </div>
+
+        <div class="card purple-card">
+            <div class="card-content">
+                <h3>Verified Images</h3>
+                <div class="value">{{ verified_count | default:"0" }}</div>
+                <div class="trend">{{ verification_percentage }}% of total</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-row">
+        <div class="dashboard-panel">
+            <h3>Upload Activity</h3>
+            <div class="chart-container">
+                <canvas id="uploadChart"></canvas>
+            </div>
+        </div>
+
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <h4>Verification Rate</h4>
+                <div class="circle-chart">
+                    <canvas id="verificationChart"></canvas>
+                </div>
+                <div class="chart-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Verified</span>
+                        <span class="detail-value">{{ verified_count }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Pending</span>
+                        <span class="detail-value">{{ unverified_count }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h4>User Activity</h4>
+                <div class="circle-chart">
+                    <canvas id="userActivityChart"></canvas>
+                </div>
+                <div class="chart-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Active</span>
+                        <span class="detail-value">{{ active_users }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Inactive</span>
+                        <span class="detail-value">{{ inactive_users }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% block extrajs %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly Upload Chart
+        const uploadCtx = document.getElementById('uploadChart').getContext('2d');
+        const uploadChart = new Chart(uploadCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_labels|default:"[]"|safe }},
+                datasets: [{
+                    label: 'Uploads',
+                    data: {{ chart_data|default:"[]"|safe }},
+                    backgroundColor: '#9c51b6',
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            drawBorder: false,
+                            display: true,
+                            color: '#f0f0f0'
+                        },
+                        ticks: {
+                            color: '#666'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#666'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Verification Chart
+        const verificationCtx = document.getElementById('verificationChart').getContext('2d');
+        const verificationChart = new Chart(verificationCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Verified', 'Pending'],
+                datasets: [{
+                    data: [{{ verified_count }}, {{ unverified_count }}],
+                    backgroundColor: ['#2196f3', '#e0e0e0'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: true
+                    }
+                }
+            }
+        });
+
+        // User Activity Chart
+        const userActivityCtx = document.getElementById('userActivityChart').getContext('2d');
+        const userActivityChart = new Chart(userActivityCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Active', 'Inactive'],
+                datasets: [{
+                    data: [{{ active_users }}, {{ inactive_users }}],
+                    backgroundColor: ['#4caf50', '#e0e0e0'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: true
+                    }
+                }
+            }
+        });
+// Function to update the dashboard counts
+function updateDashboardCounts() {
+    console.log('Attempting to fetch dashboard counts');
+
+
+    // Use the URL that matches your URL pattern
+    const dashboardUrl = '/auth/dashboard-counts/';
+
+    console.log(`Fetching dashboard counts from: ${dashboardUrl}`);
+
+    fetch(dashboardUrl, {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received dashboard data:', data);
+
+            // Update card values
+            document.querySelector('.blue-card .value').textContent = data.user_count;
+            document.querySelector('.green-card .value').textContent = data.image_count;
+            document.querySelector('.purple-card .value').textContent = data.verified_count;
+            document.querySelector('.purple-card .trend').textContent = data.verification_percentage + '% of total';
+
+            // Update chart data
+            verificationChart.data.datasets[0].data = [data.verified_count, data.unverified_count];
+            verificationChart.update();
+
+            userActivityChart.data.datasets[0].data = [data.active_users, data.inactive_users];
+            userActivityChart.update();
+
+            // Update detail values
+            const detailItems = document.querySelectorAll('.detail-item .detail-value');
+            if (detailItems.length >= 2) {
+                detailItems[0].textContent = data.verified_count;
+                detailItems[1].textContent = data.unverified_count;
+            }
+            if (detailItems.length >= 4) {
+                detailItems[2].textContent = data.active_users;
+                detailItems[3].textContent = data.inactive_users;
+            }
+        })
+        .catch(error => console.error('Error updating dashboard counts:', error));
+}
+
+    // Update counts every 30 seconds
+    setInterval(updateDashboardCounts, 30000);
+
+    // Initial update
+    updateDashboardCounts();
+    });
+</script>
+{% endblock %}
+{% endblock %}

@@ -18,7 +18,6 @@ __pycache__/
 .env.*
 
 # Django static and media (optional if generated locally)
-staticfiles/
 siu_venv/
 
 # Unit test / coverage reports

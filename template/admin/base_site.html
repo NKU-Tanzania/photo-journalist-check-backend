@@ -1,0 +1,335 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Secure Image Upload - Admin{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block extrastyle %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/admin_custom.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/sidebar.css' %}">
+<!--    <link rel="stylesheet" type="text/css" href="{% static 'css/custom_gallery.css' %}">-->
+<!--    <link rel="stylesheet" type="text/css" href="{% static 'css/dashboard.css' %}">-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <style>
+        /* Hide the default Django admin navigation */
+        .dashboard #content-related {
+            display: none;
+        }
+
+        /* Modified sidebar styles */
+        .modern-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 250px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        }
+
+        /* Adjust main content area */
+        #container {
+            padding-left: 250px;
+            transition: padding-left 0.3s;
+        }
+
+        /* Adjust header */
+        #header {
+            padding-left: 250px;
+            transition: padding-left 0.3s;
+        }
+
+        /* Collapsed state */
+        .collapsed .modern-sidebar {
+            width: 60px;
+        }
+
+        .collapsed #container,
+        .collapsed #header {
+            padding-left: 60px;
+        }
+
+        /* Modify sidebar toggle button */
+        .sidebar-toggle {
+            position: fixed;
+            left: 250px;
+            top: 10px;
+            z-index: 1001;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            padding: 10px;
+            cursor: pointer;
+            transition: left 0.3s;
+        }
+
+        .collapsed .sidebar-toggle {
+            left: 60px;
+        }
+
+        /* Hide Django's content-related div which shows the "Add" buttons */
+        #content-related {
+            display: none !important;
+        }
+
+        /* Full-width content */
+        .colMS {
+            margin-right: 0 !important;
+        }
+
+        /* Sidebar links */
+        .main-menu-title {
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            text-transform: uppercase;
+            padding: 15px 20px 5px;
+            margin: 0;
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-section h3 {
+            padding: 0 20px;
+            margin: 15px 0 5px;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .sidebar-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        .sidebar-link.active {
+            background: rgba(255,255,255,0.2);
+            border-left: 3px solid #3498db;
+        }
+
+        .sidebar-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 10px 0;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .modern-sidebar {
+                transform: translateX(-100%);
+                width: 250px;
+            }
+
+            .modern-sidebar.active {
+                transform: translateX(0);
+            }
+
+            #container, #header {
+                padding-left: 0;
+            }
+
+            .sidebar-toggle {
+                left: 10px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block branding %}
+    <div class="admin-branding">
+        <img src="{% static 'images/logo.png' %}" alt="Logo" class="admin-logo">
+        <h1>Secure Image Upload</h1>
+    </div>
+{% endblock %}
+
+{% block userlinks %}
+    {% if user.is_active and user.is_staff %}
+        <a href="{% static 'documents/user_manual.pdf' %}">{% trans 'User Manual' %}</a> /
+    {% endif %}
+    {% if user.has_usable_password %}
+        <a href="{% url 'admin:password_change' %}">{% trans 'Change password' %}</a> /
+    {% endif %}
+    <form method="post" action="{% url 'admin:logout' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" style="
+            background:none;
+            border:none;
+            color:WHITE;
+            font:inherit;
+            cursor:pointer;
+            padding:0;
+            text-decoration:none;
+        ">
+            {% trans 'LOGOUT' %}
+        </button>
+    </form>
+{% endblock %}
+
+{% block nav-global %}
+    <div class="user-menu">
+        <div class="user-avatar">
+            <i class="fas fa-user-circle"></i>
+        </div>
+        <div class="user-info">
+            {% if user.is_authenticated %}
+                <span class="user-name">{{ user.username }}</span>
+                <span class="user-role">{% if user.is_superuser %}Admin{% else %}Staff{% endif %}</span>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block nav-sidebar %}
+    <style>
+        /* Hide the modern Django sidebar */
+        #nav-sidebar {
+            display: none !important;
+        }
+    </style>
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} with-sidebar{% endblock %}
+
+{% block content_title %}
+    {{ block.super }}
+
+    {% if user.is_authenticated %}
+    <!-- Modern sidebar -->
+    <div class="modern-sidebar" id="modern-sidebar">
+        <div class="main-menu-title">MAIN MENU</div>
+        <div class="sidebar-links">
+            <a href="{% url 'admin:index' %}" class="sidebar-link {% if request.path == '/admin/' %}active{% endif %}">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'admin:authentication_uploadedimage_changelist' %}" class="sidebar-link {% if 'authentication_uploadedimage' in request.path %}active{% endif %}">
+                <i class="fas fa-images"></i>
+                <span>Manage Images</span>
+            </a>
+            <a href="{% url 'admin:authentication_customuser_changelist' %}" class="sidebar-link {% if 'authentication_customuser' in request.path %}active{% endif %}">
+                <i class="fas fa-users"></i>
+                <span>Manage Users</span>
+            </a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="main-menu-title">REPORTS</div>
+        <div class="sidebar-links">
+            <a href="#" class="sidebar-link">
+                <i class="fas fa-chart-line"></i>
+                <span>Monthly Activity</span>
+            </a>
+            <a href="#" class="sidebar-link">
+                <i class="fas fa-shield-alt"></i>
+                <span>Security Report</span>
+            </a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="main-menu-title">SETTINGS</div>
+        <div class="sidebar-links">
+            <a href="#" class="sidebar-link">
+                <i class="fas fa-cogs"></i>
+                <span>System Settings</span>
+            </a>
+            <a href="#" class="sidebar-link">
+                <i class="fas fa-user-cog"></i>
+                <span>User Preferences</span>
+            </a>
+        </div>
+
+        {% if user.is_superuser %}
+        <div class="sidebar-divider"></div>
+
+        <div class="main-menu-title">ADMINISTRATION</div>
+        <div class="sidebar-links">
+            <a href="{% url 'admin:index' %}" class="sidebar-link">
+                <i class="fas fa-tools"></i>
+                <span>Admin Panel</span>
+            </a>
+            <a href="{% url 'admin:auth_group_changelist' %}" class="sidebar-link">
+                <i class="fas fa-user-tag"></i>
+                <span>Manage Groups</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Toggle button for mobile -->
+    <button class="sidebar-toggle" id="sidebar-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    {% endif %}
+{% endblock %}
+
+{% block footer %}
+    {{ block.super }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('modern-sidebar');
+            const container = document.getElementById('container');
+            const header = document.getElementById('header');
+
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('collapsed');
+                });
+            }
+
+            // For mobile view
+            if (window.innerWidth <= 768) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                });
+            }
+
+            // Add active class to current menu item
+            const currentPath = window.location.pathname;
+            const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+            sidebarLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Force-hide the Django admin "Add" buttons sidebar
+            const contentRelated = document.getElementById('content-related');
+            if (contentRelated) {
+                contentRelated.style.display = 'none';
+            }
+        });
+    </script>
+{% endblock %}

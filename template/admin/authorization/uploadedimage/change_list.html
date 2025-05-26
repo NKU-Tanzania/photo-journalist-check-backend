@@ -1,0 +1,9 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    <li>
+        <a href="{{ custom_view_link }}" class="button">Modern Image View</a>
+    </li>
+{% endblock %}

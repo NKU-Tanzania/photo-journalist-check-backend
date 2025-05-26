@@ -1,0 +1,319 @@
+/* General Styles */
+:root {
+    --primary: #2196f3;
+    --secondary: #9c51b6;
+    --success: #4caf50;
+    --info: #00bcd4;
+    --warning: #ff9800;
+    --danger: #f44336;
+    --light: #f5f7fb;
+    --dark: #344767;
+    --text-light: #67748e;
+    --border-color: #e9ecef;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--light);
+    color: var(--dark);
+}
+
+/* Header Styles */
+
+ #header {
+    position: fixed;
+    width: 100%;
+    left: 0;
+    top: 0;
+    z-index: 1001;
+    background-color: var(--primary);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    height: 60px; /* Increased height to accommodate logo and title */
+    padding: 0 20px; /* Equal padding on both sides */
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* This ensures space between left and right content */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.admin-branding {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0; /* Remove margin */
+    padding: 0;
+    position: relative; /* Change from absolute to relative */
+    z-index: 1002;
+    height: 60px; /* Match header height */
+}
+
+.admin-logo {
+    height: 32px;
+    margin-right: 10px;
+}
+
+
+#header h1 {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    height:60px;
+    padding-right:20px;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 20px;
+    margin-right: 10px;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.user-role {
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+/* Ensure the header content doesn't overflow */
+#header > div {
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Fix for horizontal scrolling issue */
+body {
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+html, body {
+    max-width: 100%;
+}
+
+/* Sidebar Styles */
+#sidebar {
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    padding: 15px 0;
+    width: 250px;
+}
+
+.module h2, .module caption {
+    background: none;
+    color: var(--dark);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    padding: 10px 15px;
+}
+
+#sidebar .module h2, #sidebar .module caption {
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Content Styles */
+#content {
+    padding: 20px;
+}
+
+.module {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    background-color: white;
+    overflow: hidden;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th {
+    font-weight: 500;
+    color: var(--dark);
+    background-color: #f8fafc;
+    border-bottom: 1px solid var(--border-color);
+}
+
+td, th {
+    padding: 12px 15px;
+    text-align: left;
+}
+
+tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Button and Link Styles */
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover, a.button:hover {
+    background-color: #1976d2;
+}
+
+.button.default, input[type=submit].default, .submit-row input.default {
+    background-color: var(--success);
+}
+
+.button.default:hover, input[type=submit].default:hover, .submit-row input.default:hover {
+    background-color: #388e3c;
+}
+
+/* Form Styles */
+form label {
+    font-size: 14px;
+    font-weight: normal;
+    color: var(--dark);
+}
+
+input[type=text], input[type=password], input[type=email], input[type=number], input[type=url], select, textarea {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, input[type=number]:focus, input[type=url]:focus, select:focus, textarea:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+/* Dashboard-specific */
+.dashboard .module {
+    margin-right: 10px;
+}
+
+/* Breadcrumbs */
+div.breadcrumbs {
+    background: none;
+    padding: 10px 20px;
+    color: var(--text-light);
+    font-size: 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+div.breadcrumbs a {
+    color: var(--primary);
+}
+
+/* Messages */
+ul.messagelist li {
+    padding: 10px 20px;
+    border-radius: 4px;
+    margin: 0 0 10px 0;
+}
+
+ul.messagelist li.success {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border-left: 4px solid var(--success);
+}
+
+ul.messagelist li.warning {
+    background-color: #fff3e0;
+    color: #e65100;
+    border-left: 4px solid var(--warning);
+}
+
+ul.messagelist li.error {
+    background-color: #ffebee;
+    color: #c62828;
+    border-left: 4px solid var(--danger);
+}
+
+/* Verification Status Styling */
+.verification-status {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    display: inline-block;
+}
+
+.verification-status.verified {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.verification-status.not-verified {
+    background-color: #ffebee;
+    color: #c62828;
+}
+.admin-branding h1 {
+    margin: 0; /* Reset margin */
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+        /* Ensure header remains fixed width regardless of window size */
+
+
+        /* Adjust content padding to account for fixed header */
+        #container {
+    padding-left: 250px; /* Match sidebar width */
+    padding-top: 60px; /* Match header height */
+    transition: padding 0.3s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+        /* When sidebar is collapsed */
+.collapsed #header {
+    padding-left: 80px; /* Adjust for collapsed sidebar */
+}
+
+.collapsed .admin-branding {
+    left: 80px; /* Adjust for collapsed sidebar */
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    #container {
+        padding-left: 0;
+    }
+
+    #header {
+        padding-left: 20px;
+    }
+
+    .admin-branding {
+        left: 20px;
+    }
+
+    div.breadcrumbs {
+        padding-left: 20px !important;
+    }
+}

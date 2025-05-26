@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300">
+  <!-- Background -->
+  <rect width="500" height="300" fill="white"/>
+  
+  <!-- Circular Background -->
+  <circle cx="250" cy="130" r="90" fill="#f0f0f0" stroke="#2c5282" stroke-width="6"/>
+  
+  <!-- Camera Body - More Prominent -->
+  <rect x="200" y="100" width="100" height="70" rx="10" fill="#4a5568"/>
+  
+  <!-- Camera Lens -->
+  <circle cx="250" cy="135" r="25" fill="#2c5282"/>
+  <circle cx="250" cy="135" r="18" fill="#1a365d"/>
+  <circle cx="250" cy="135" r="10" fill="#f0f0f0"/>
+  
+  <!-- Camera Flash -->
+  <rect x="225" y="110" width="15" height="10" rx="2" fill="#f0f0f0"/>
+  
+  <!-- Camera Top Part -->
+  <rect x="225" y="90" width="50" height="10" rx="3" fill="#4a5568"/>
+  
+  <!-- Lock Overlay on Camera -->
+  <rect x="225" y="145" width="50" height="35" rx="5" fill="#2c5282"/>
+  
+  <!-- Lock Shackle -->
+  <path d="M235 145 L235 125 Q235 110 250 110 Q265 110 265 125 L265 145" 
+        stroke="#2c5282" stroke-width="8" fill="none" stroke-linecap="round"/>
+  
+  <!-- Lock Keyhole -->
+  <circle cx="250" cy="162" r="7" fill="#1a365d"/>
+  <rect x="247" y="162" width="6" height="10" fill="#1a365d"/>
+  
+  <!-- Text Elements -->
+  <text x="250" y="240" font-family="Arial, sans-serif" font-size="28" font-weight="bold" text-anchor="middle" fill="#2c5282">Secure Image Upload</text>
+  <text x="250" y="270" font-family="Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="#4a5568">SiU</text>
+</svg>

@@ -1,0 +1,196 @@
+/* Modern Sidebar Styles */
+:root {
+    --sidebar-width: 250px;
+    --sidebar-bg: white;
+    --primary: #2196f3;
+    --secondary: #9c51b6;
+    --text-dark: #344767;
+    --text-light: #67748e;
+    --border-color: #e9ecef;
+    --light-gray: #f5f7fb;
+}
+
+/* Main container layout */
+#container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Modern sidebar */
+.modern-sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+    position: fixed;
+    top: 60px; /* Height of the header */
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    z-index: 1000;
+    padding: 20px 0;
+    box-sizing: border-box;
+}
+
+/* Adjust main content when sidebar is present */
+.with-sidebar #content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+}
+
+/* Sidebar section styles */
+.sidebar-section {
+    margin-bottom: 30px;
+    padding: 0 15px;
+}
+
+.sidebar-section h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dark);
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0 5px;
+}
+
+/* Sidebar links */
+.sidebar-links {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+}
+
+.sidebar-link:hover {
+    background-color: var(--light-gray);
+}
+
+.sidebar-link.active {
+    background-color: var(--primary);
+    color: white;
+}
+
+.sidebar-link i {
+    margin-right: 10px;
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    color: var(--primary);
+}
+
+.sidebar-link.active i {
+    color: white;
+}
+
+/* Sidebar divider */
+.sidebar-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 15px 0;
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+    padding: 15px;
+    margin-top: auto;
+    font-size: 12px;
+    color: var(--text-light);
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .modern-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .modern-sidebar.active {
+        transform: translateX(0);
+    }
+
+    .with-sidebar #content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sidebar-toggle {
+        display: block;
+    }
+}
+
+/* Toggle button for mobile */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    z-index: 1001;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Hide default Django sidebar */
+.sidebar {
+    display: none !important;
+}
+
+/* Force full width for content and override Django's default layout */
+#content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 250px !important; /* This should match your sidebar width */
+    box-sizing: border-box !important;
+}
+
+/* Ensure the content is properly positioned */
+.colM #content-main {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Remove default Django admin spacing */
+.dashboard #content-main {
+    width: 100% !important;
+}
+
+/* Override Django's default admin styles */
+.module {
+    width: 100% !important;
+}
+
+/* Fix the container width */
+#container {
+    padding-left: 0 !important;
+    width: 100% !important;
+}
+
+
+/* Hide Django's default sidebar completely */
+.sidebar {
+    display: none !important;
+    width: 0 !important;
+}
+
+/* Remove any breadcrumb padding */
+div.breadcrumbs {
+    padding-left: 250px !important;
+}
