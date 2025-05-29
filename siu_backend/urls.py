@@ -43,7 +43,7 @@ from django.views.decorators.http import require_GET
 urlpatterns = [
     path('admin/', admin.site.urls),
     # path('', RedirectView.as_view(url='admin/', permanent=False)),
-    path('auth/', include('authentication.urls')),
+    path('auth/', include('pjc_backend.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
