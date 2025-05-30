@@ -510,3 +510,45 @@ select, input, button {
 .fa-exclamation-triangle:before {
   content: "\f071";
 }
+
+.caption-full.hidden {
+  display: none;
+}
+
+.image-caption {
+  font-size: 0.95em;
+  color: #444;
+}
+
+.read-more {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 0.9em;
+  color: #007bff;
+  cursor: pointer;
+}
+
+.oval-caption {
+  display: block;
+  background-color: #f0f8ff;
+  color: #333;
+  padding: 12px 16px;
+  border-radius: 8px;         /* Rounded square */
+  border: 1px solid #ccc;
+  font-size: 0.95em;
+  word-wrap: break-word;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
+  margin: 10px auto 0 auto;   /* Center horizontally */
+  max-width: 95%;
+  box-sizing: border-box;
+}
+
+
+.oval-caption .read-more {
+  margin-left: 10px;
+  font-weight: bold;
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: none;
+}
+

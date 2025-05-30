@@ -31,7 +31,7 @@ class UploadedImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UploadedImage
-        fields = ('id', 'original_image', 'hash_value', 'metadata', 'verification_status', 'uploaded_at', 'image_url')
+        fields = ('id', 'original_image', 'hash_value', 'metadata', 'verification_status', 'uploaded_at', 'image_url', 'caption')
         read_only_fields = ('hash_value', 'metadata', 'verification_status', 'image_url')
 
     def get_verification_status(self, obj):

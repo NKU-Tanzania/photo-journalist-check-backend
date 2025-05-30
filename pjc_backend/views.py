@@ -501,6 +501,9 @@ class ImageUploadView(APIView):
                         "ip_address": self.get_client_ip(request)  # Still add IP even if other metadata fails
                     }
 
+            caption = request.data.get('caption', '')
+
+
 
             # Use the model's class method to handle the upload
             upload, computed_hash = UploadedImage.upload_image(
@@ -508,7 +511,8 @@ class ImageUploadView(APIView):
                 image_file,
                 aes_key,
                 provided_hash=provided_hash,
-                metadata=metadata
+                metadata=metadata,
+                caption = caption
             )
 
             # Attempt to verify the image

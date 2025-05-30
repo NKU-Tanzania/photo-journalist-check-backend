@@ -53,6 +53,20 @@
         <h3>{{ image.user.username }}</h3>
         <p>Uploaded: {{ image.uploaded_at|date:"M d, Y, g:i a" }}</p>
 
+        <!-- caption div -->
+          {% if image.caption %} 
+            <div class="image-caption oval-caption">
+            <span class="caption-text short">{{ image.caption|truncatechars:100 }}</span>
+              {% if image.caption|length > 100 %}
+                <span class="caption-full hidden">{{ image.caption }}</span>
+                <a href="javascript:void(0);" class="read-more" onclick="toggleCaption(this)">Read More...</a>
+              {% endif %}
+            </div>
+          {% endif %}
+
+        
+
+
         <div class="hash-values-container">
           <div class="hash-toggle-btn">
             <button class="toggle-hash-btn" onclick="toggleHashDetails(this)">Show Hash Values</button>
@@ -160,6 +174,25 @@
     }
   }
 </script>
+
+<script>
+  function toggleCaption(link) {
+    const container = link.closest('.image-caption');
+    const shortText = container.querySelector('.caption-text');
+    const fullText = container.querySelector('.caption-full');
+
+    if (shortText.style.display === 'none') {
+      shortText.style.display = '';
+      fullText.classList.add('hidden');
+      link.textContent = 'Read More...';
+    } else {
+      shortText.style.display = 'none';
+      fullText.classList.remove('hidden');
+      link.textContent = 'Show Less';
+    }
+  }
+</script>
+
 {% endblock %}
 
 {% block extrajs %}

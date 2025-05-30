@@ -67,6 +67,8 @@ User = get_user_model()
 class UploadedImage(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     original_image = models.ImageField(upload_to='original/', blank=True, null=True)
+    caption = models.CharField(max_length=255, blank=True, null=True)
+
     # This contains the encrypted data from the client
     encrypted_image = models.BinaryField()
     hash_value = models.CharField(max_length=255)  # Increased length to accommodate Base64
@@ -196,7 +198,7 @@ class UploadedImage(models.Model):
         return metadata
 
     @classmethod
-    def upload_image(cls, user, image_file, aes_key, provided_hash=None, metadata=None):
+    def upload_image(cls, user, image_file, aes_key, provided_hash=None, metadata=None, caption=None):
         """
         Process image upload:
         1. Store the encrypted image data from client
@@ -205,7 +207,7 @@ class UploadedImage(models.Model):
         4. Create minimal metadata if none provided
         """
         # Create the model instance
-        upload = cls(user=user)
+        upload = cls(user=user, caption=caption)
 
         try:
             # Store the encrypted image data as is
